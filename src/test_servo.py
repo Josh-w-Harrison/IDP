@@ -1,30 +1,36 @@
 from machine import Pin, PWM
-from utime import sleep, ticks_ms, ticks_diff
+from time import sleep
 
-def test_pwm():
-    pwm_pin_no = 28  # GP28 (physical pin 34)
-    pwm_pin = PWM(Pin(pwm_pin_no))
-    pwm_pin.freq(100)
+# 1. Use the correct pin for Servo 1 [cite: 257]
+pwm_pin = PWM(Pin(13))
 
-    level = 0       # 0–100 %
-    direction = 1   # 1=up, -1=down
-    start_time = ticks_ms()  # start timer
+# 2. Use the standard 50Hz frequency for servos [cite: 250, 254]
+pwm_pin.freq(50)
 
-    while ticks_diff(ticks_ms(), start_time) < 10_000:  # run for 10 seconds
-        u16_level = int(65535 * level / 100)
-        pwm_pin.duty_u16(u16_level)
+# 3. Define the correct duty_u16 values based on the 500-2500us pulse spec
+# (These are calculated for a 50Hz / 20,000us period)
+MIN_DUTY = 1638  # 500us pulse
+MID_DUTY = 4915  # 1500us pulse
+MAX_DUTY = 8192  # 2500us pulse
 
-        print(f"Level={level}, u16_level={u16_level}, direction={direction}")
-        level += direction
-        if level == 100:
-            direction = -1
-        elif level == 0:
-            direction = 1
-        sleep(0.1)
+# --- Test the servo ---
 
-    # after 10 seconds, turn PWM off
+try:
+    while True:
+        print("Moving to MIN position (approx 0 deg)")
+        pwm_pin.duty_u16(MIN_DUTY)
+        sleep(2)
+
+        print("Moving to MID position (approx 135 deg)")
+        pwm_pin.duty_u16(MID_DUTY)
+        sleep(2)
+
+        print("Moving to MAX position (approx 270 deg)")
+        pwm_pin.duty_u16(MAX_DUTY)
+        sleep(2)
+
+except KeyboardInterrupt:
+    # This lets you stop the script in Thonny/PyCharm
+    # It will turn off the PWM, stopping the servo
     pwm_pin.duty_u16(0)
-    print("Test complete — PWM stopped.")
-
-if __name__ == "__main__":
-    test_pwm()
+    print("\nTest stopped. Servo off.")
