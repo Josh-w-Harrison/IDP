@@ -12,7 +12,6 @@ def test_input_poll():
         # Poll the value
         value = input.value()
         print(f"Input = {value}")
-        return value
         sleep(0.2)
 
 
@@ -95,5 +94,5 @@ def test_input_irq():
 
 
 if __name__ == "__main__":
-    test_input_poll()
+    line_sensor_18()
     # test_input_irq()
