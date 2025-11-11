@@ -1,5 +1,5 @@
 from Actuators.test_led import test_led
-from Actuators.test_input import test_input_poll
+from Sensors.test_input import test_input_poll
 from Actuators.test_motor import test_motor3
 from Actuators.test_actuator import test_actuator1
 from Sensors.test_tcs3472 import test_tcs3472
