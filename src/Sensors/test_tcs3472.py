@@ -88,7 +88,7 @@ class TCS34725:
 # -------------------------
 try:
     # Initialize I2C (adjust pins for your board)
-    i2c = I2C(1, scl=Pin(15), sda=Pin(14), freq=400000)
+    i2c = I2C(0, scl=Pin(17), sda=Pin(16), freq=400000)
 
     sensor = TCS34725(i2c)
 
