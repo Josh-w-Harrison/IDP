@@ -248,7 +248,40 @@ def manual_navigation():
 
 
 
-    # Going from Rack A down to rack A up
+    # Going from the original position of the robot to rack A UPPER PART
+
+    # Step 1: Forward 0.2 m
+    move_forward(motor_left, motor_right, speed=60, distance_m=0.4)
+    # Step 2: Turn right (1.0 s)
+    turn_left(motor_left, motor_right, turning_speed=40, turn_time=1.0)
+    # Step 3: Go forward 1.1 m
+    move_forward(motor_left, motor_right, speed=60, distance_m=1.1)
+    # Step 4: Turn left (use turning speed)
+    turn_right(motor_left, motor_right, turning_speed=35, turn_time=1.0)
+    # Step 5: Go forward 0.1 m
+    move_forward(motor_left, motor_right, speed=70, distance_m=0.1)
+    # Step 6: Turn left (use turning speed)
+    turn_right(motor_left, motor_right, turning_speed=35, turn_time=1.0)
+    # Step 4: Turn left (use turning speed)
+    turn_right(motor_left, motor_right, turning_speed=35, turn_time=1.0)
+    # Step 5: Go forward 0.1 m
+    move_forward(motor_left, motor_right, speed=70, distance_m=0.1)
+    # Step 6: Turn left (use turning speed)
+    turn_right(motor_left, motor_right, turning_speed=35, turn_time=1.0)
+    move_forward(motor_left, motor_right, speed=70, distance_m=0.1)
+    
+
+
+
+    print("At the upper section of the track.")
+
+
+
+    # Picking up the blocks from the UPPER PART OF THE RACK A 
+
+
+
+
 
 
 
