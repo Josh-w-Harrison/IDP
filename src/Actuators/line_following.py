@@ -1,7 +1,5 @@
 from machine import Pin, PWM
 from utime import sleep
-from Actuators.test_led import test_led
-
 
 class Motor:
     def __init__(self, dirPin, PWMPin):
@@ -53,13 +51,13 @@ def line_following():
             motor_left.Forward(base_speed)
             motor_right.Forward(base_speed)
 
-        elif s16 == 1 and s17 == 1:
+        elif s17 == 0 and s18 == 1:
             # Line drifting left → turn right
             print("LEFT EDGE Turn right")
             motor_left.Forward(turn_speed)
             motor_right.Forward(base_speed)
 
-        elif s18 == 1 and s19 == 1:
+        elif s17 == 1 and s18 == 0:
             # Line drifting right → turn left
             print("RIGHT EDGE Turn left")
             motor_left.Forward(base_speed)
@@ -76,4 +74,3 @@ def line_following():
 
 if __name__ == "__main__":
     line_following()
-    test_led()
