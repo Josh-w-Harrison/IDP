@@ -1,5 +1,9 @@
+import sys
+sys.path.append('src/Actuators')
+
 from machine import Pin, PWM
 from utime import sleep
+from test_led import test_led
 
 class Motor:
     def __init__(self, dirPin, PWMPin):
@@ -74,3 +78,4 @@ def line_following():
 
 if __name__ == "__main__":
     line_following()
+    test_led()
