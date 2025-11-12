@@ -1,5 +1,6 @@
 from machine import Pin, PWM
 from utime import sleep
+from Actuators.test_led import test_led
 
 
 class Motor:
@@ -75,3 +76,4 @@ def line_following():
 
 if __name__ == "__main__":
     line_following()
+    test_led()
