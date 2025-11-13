@@ -47,9 +47,9 @@ def read_sensor(pin_num):
 
 
 def line_follow(left, right):
-    base, turn_spd = 60, 35
+    base, turn_spd = 50, 40
     while True:
-        s16, s17, s18, s19 = [read_sensor(i) for i in (16, 17, 18, 19)]
+        s16, s17, s18, s19 = [read_sensor(i) for i in (8, 9, 10, 11)]
 
         if s17 == 1 and s18 == 1:
             left.Forward(base); right.Forward(base)
@@ -57,7 +57,7 @@ def line_follow(left, right):
             left.Forward(turn_spd); right.Forward(base)
         elif s17 == 1 and s18 == 0:
             left.Forward(base); right.Forward(turn_spd)
-        elif s16 == 1 and s19 == 1:
+        elif s16 == 1 or s19 == 1:
             print("Possible junction detected")
             left.off(); right.off()
             return "junction"
@@ -96,7 +96,8 @@ def navigate_path(path):
         if rel != 0:
             turn(left, right, rel)
         line_follow(left, right)
-        move_forward(left, right)
+        # move_forward(left, right)
+        # move_forward is the same as line_follow
         direction = new_dir
     left.off(); right.off()
 
