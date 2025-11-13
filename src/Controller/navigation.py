@@ -38,7 +38,7 @@ def move_forward(motor_left, motor_right, speed, distance_m):
 def move_reverse(motor_left, motor_right, speed, distance_m):
     base_speed_m_per_s = 0.2 * (speed / 60)
     time_s = distance_m / base_speed_m_per_s
-    print(f"REVERSE {distance_m:.2f} m (≈ {time_s:.2f} s)")
+    print(f"REVERSE {distance_m:.2f} m ({time_s:.2f} s)")
     motor_left.Reverse(speed); motor_right.Reverse(speed)
     sleep(time_s)
     motor_left.off(); motor_right.off()
@@ -80,6 +80,7 @@ def manual_navigation():
 
     # Step 1: Forward 0.2 m
     move_forward(motor_left, motor_right, speed=60, distance_m=0.4)
+    sleep(100)
 
     # Step 2: Turn left (1.0 s)
     turn_right(motor_left, motor_right, turning_speed=40, turn_time=1.0)
