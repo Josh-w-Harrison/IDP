@@ -27,7 +27,7 @@ def move_forward(left, right, speed=60, dist_m=0.3):
     left.off(); right.off()
 
 
-def turn(left, right, rel_dir, speed=40, t=0.8):
+def turn(left, right, rel_dir, speed=40, t=2):
     # rel_dir: +1 = right 90°, -1 = left 90°, 2 = U-turn
     if rel_dir == +1:
         left.Forward(speed); right.Reverse(speed)
@@ -47,24 +47,27 @@ def read_sensor(pin_num):
 
 
 def line_follow(left, right):
-    base, turn_spd = 50, 40
+    base, turn_spd = 50, 30
+
     while True:
         s16, s17, s18, s19 = [read_sensor(i) for i in (8, 9, 10, 11)]
+        print(f"Sensors: {s16} {s17} {s18} {s19}")
 
         if s17 == 1 and s18 == 1:
             left.Forward(base); right.Forward(base)
-        elif s17 == 0 and s18 == 1:
+        
+        if s17 == 1 and s18 == 0:
             left.Forward(turn_spd); right.Forward(base)
-        elif s17 == 1 and s18 == 0:
+        
+        if s17 == 0 and s18 == 1:
             left.Forward(base); right.Forward(turn_spd)
-        elif s16 == 1 or s19 == 1:
-            print("Possible junction detected")
-            left.off(); right.off()
+        
+        if s16 == 1 or s19 == 1:
+            left.off()
+            right.off()
             return "junction"
-        else:
-            left.off(); right.off()
-            return "lost"
-        sleep(0.05)
+
+        sleep(0.02)
 
 
 # ------------------ GRAPH NAVIGATION ------------------
@@ -87,18 +90,22 @@ def relative_turn(current_dir, new_dir):
 
 def navigate_path(path):
     left, right = Motor(4, 5), Motor(7, 6)
-    direction = 0  # starting orientation (north)
-    for i in range(len(path) - 1):
-        node, next_node = path[i], path[i + 1]
-        new_dir = maze_map[node][next_node]
-        rel = relative_turn(direction, new_dir)
-        print(f"At node {node}, going to {next_node}, rel_turn={rel}")
-        if rel != 0:
-            turn(left, right, rel)
-        line_follow(left, right)
-        # move_forward(left, right)
-        # move_forward is the same as line_follow
-        direction = new_dir
+    # direction = 0  # starting orientation (north)
+    direction = 3
+
+    try:
+        for i in range(len(path) - 1):
+            node, next_node = path[i], path[i + 1]
+            new_dir = maze_map[node][next_node]
+            rel = relative_turn(direction, new_dir)
+            print(f"At node {node}, going to {next_node}, rel_turn={rel}")
+            if rel != 0:
+                turn(left, right, rel)
+            move_forward(left, right, dist_m=0.05) # move forward to clear the junction
+            line_follow(left, right)
+            direction = new_dir
+    except KeyboardInterrupt:
+        left.off(); right.off()
     left.off(); right.off()
 
 
