@@ -105,5 +105,7 @@ def navigate_path(path):
 # ------------------ MAIN ------------------
 
 if __name__ == "__main__":
-    path = [0, 1, 2, 4, 5]   # example path sequence through the maze
+    path = [1, 2, 4, 5]   # example path sequence through the maze
+    path_back = path[::-1]  # [5, 4, 2, 1, 0]
     navigate_path(path)
+    navigate_path(path_back)
