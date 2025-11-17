@@ -1,24 +1,14 @@
+import sys
+sys.path.append('src/Actuators')
+sys.path.append('src/Sensors')
+sys.path.append('src/Controller')
+
 from machine import Pin, PWM
-from utime import sleep
-
-class Motor:
-    def __init__(self, dirPin, PWMPin):
-        self.mDir = Pin(dirPin, Pin.OUT)
-        self.pwm = PWM(Pin(PWMPin))
-        self.pwm.freq(1000)
-        self.off()
-
-    def off(self):
-        self.pwm.duty_u16(0)
-
-    def Forward(self, speed=100):
-        self.mDir.value(0)
-        self.pwm.duty_u16(int(65535 * speed / 100))
-
-    def Reverse(self, speed=50):
-        self.mDir.value(1)
-        self.pwm.duty_u16(int(65535 * speed / 100))
-
+from utime import sleep, ticks_ms
+import Tests.junctions_line_following as junctions_line_following
+from Sensors import sensor_pins
+from Actuators import actuator_class
+from Controller import state_machine
 
 def move_forward(motor_left, motor_right, speed, distance_m):
     # Distance → approximate duration (calibration needed!)
@@ -70,16 +60,7 @@ def release():
     sleep(1)
 
 
-
-# Return value of each sensor once per call (no infinite loop)
-def read_sensor(pin_num):
-    sensor = Pin(pin_num, Pin.IN, Pin.PULL_UP)  # <-- use pull-up instead
-    return sensor.value()  # 1=white (on line), 0=black (off line)
-
-
 def line_following():
-    motor_left = Motor(dirPin=4, PWMPin=5)
-    motor_right = Motor(dirPin=7, PWMPin=6)
 
     base_speed = 60
     turn_speed = 35
@@ -88,10 +69,10 @@ def line_following():
 
     while True:
         # Read all sensors
-        s16 = read_sensor(16)
-        s17 = read_sensor(17)
-        s18 = read_sensor(18)
-        s19 = read_sensor(19)
+        s16 = sensor_pins.read_sensor(16)
+        s17 = sensor_pins.read_sensor(17)
+        s18 = sensor_pins.read_sensor(18)
+        s19 = sensor_pins.read_sensor(19)
 
         print(f"Sensors: 16={s16}, 17={s17}, 18={s18}, 19={s19}")
 
@@ -99,25 +80,25 @@ def line_following():
         if s17 == 1 and s18 == 1:
             # On the line — go forward
             print("CENTERED Forward")
-            motor_left.Forward(base_speed)
-            motor_right.Forward(base_speed)
+            actuator_class.motor_left.Forward(base_speed)
+            actuator_class.motor_right.Forward(base_speed)
 
         elif s17 == 0 and s18 == 1:
             # Line drifting left → turn right
             print("LEFT EDGE Turn right")
-            motor_left.Forward(turn_speed)
-            motor_right.Forward(base_speed)
+            actuator_class.motor_left.Forward(turn_speed)
+            actuator_class.motor_right.Forward(base_speed)
 
         elif s17 == 1 and s18 == 0:
             # Line drifting right → turn left
             print("RIGHT EDGE Turn left")
-            motor_left.Forward(base_speed)
-            motor_right.Forward(turn_speed)
+            actuator_class.motor_left.Forward(base_speed)
+            actuator_class.motor_right.Forward(turn_speed)
 
         else:
             # Lost line — stop
             print("LOST LINE Stop")
-            motor_left.off()
-            motor_right.off()
+            actuator_class.motor_left.off()
+            actuator_class.motor_right.off()
 
         sleep(0.1)

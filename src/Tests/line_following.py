@@ -1,27 +1,15 @@
 import sys
 sys.path.append('src/Actuators')
+sys.path.append('src/Sensors')
+sys.path.append('src/Controller')
 
 from machine import Pin, PWM
-from utime import sleep
-from test_led import test_led
-
-class Motor:
-    def __init__(self, dirPin, PWMPin):
-        self.mDir = Pin(dirPin, Pin.OUT)
-        self.pwm = PWM(Pin(PWMPin))
-        self.pwm.freq(1000)
-        self.off()
-
-    def off(self):
-        self.pwm.duty_u16(0)
-
-    def Forward(self, speed=100):
-        self.mDir.value(0)
-        self.pwm.duty_u16(int(65535 * speed / 100))
-
-    def Reverse(self, speed=50):
-        self.mDir.value(1)
-        self.pwm.duty_u16(int(65535 * speed / 100))
+from utime import sleep, ticks_ms
+import Tests.junctions_line_following as junctions_line_following
+from Sensors import sensor_pins
+from Actuators import actuator_class
+from Controller import state_machine
+import junctions_line_following
 
 
 # Return value of each sensor once per call (no infinite loop)
@@ -30,9 +18,9 @@ def read_sensor(pin_num):
     return sensor.value()  # 1=white (on line), 0=black (off line)
 
 
-def line_following():
-    motor_left = Motor(dirPin=4, PWMPin=5)
-    motor_right = Motor(dirPin=7, PWMPin=6)
+def easy_line_following():
+    motor_left = actuator_class.Motor(dirPin=4, PWMPin=5)
+    motor_right = actuator_class.Motor(dirPin=7, PWMPin=6)
 
     base_speed = 60
     turn_speed = 35
@@ -77,5 +65,4 @@ def line_following():
 
 
 if __name__ == "__main__":
-    line_following()
-    test_led()
+    easy_line_following()
