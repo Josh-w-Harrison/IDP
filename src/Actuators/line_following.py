@@ -58,14 +58,14 @@ def line_following():
         elif s17 == 0 and s18 == 1:
             # Line drifting left → turn right
             print("LEFT EDGE Turn right")
-            motor_left.Forward(turn_speed)
-            motor_right.Forward(base_speed)
+            motor_right.Forward(turn_speed)
+            motor_left.Forward(base_speed)
 
         elif s17 == 1 and s18 == 0:
             # Line drifting right → turn left
             print("RIGHT EDGE Turn left")
-            motor_left.Forward(base_speed)
-            motor_right.Forward(turn_speed)
+            motor_right.Forward(base_speed)
+            motor_left.Forward(turn_speed)
 
         else:
             # Lost line — stop
