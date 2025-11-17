@@ -14,7 +14,7 @@ maze_map = {
     "Blue": {"BlueJunction": 0},
     "YellowJunction": {"RedJunction": 1, "Yellow": 2, "BoxJunction": 3},
     "Yellow": {"YellowJunction": 0},
-    "RedJunction": {"LowerRackB1": 0, "YellowJunction": 1, "Red": 2},
+    "RedJunction": {"LowerRackB1": 0, "YellowJunction": 3, "Red": 2},
     "Red": {"RedJunction": 0},
     "LowerRackA6": {"LowerRackA5": 0, "BlueJunction": 2},
     "LowerRackA5": {"LowerRackA4": 0, "LowerRackA6": 2},

@@ -1,9 +1,11 @@
 import sys
-sys.path.append('src')
+sys.path.append('src/Controller')
 
 from machine import Pin, PWM
 from utime import sleep, ticks_ms
-from Controller.navigation import maze_map, find_shortest_path, relative_turn
+
+# from navigation import find_shortest_path, relative_turn
+
 
 # ------------------ GLOBAL STATE ------------------
 
@@ -36,43 +38,43 @@ class Motor:
         self.pwm.duty_u16(int(65535 * speed / 100))
 
 
-def move_forward(left, right, speed=35, dist_m=0.1):
+def move_forward(left, right, speed=60, dist_m=0.3):
     base_speed = 0.2 * (speed / 60)
     t = dist_m / base_speed
     left.Forward(speed); right.Forward(speed); sleep(t)
     left.off(); right.off()
 
 
-def turn(left, right, rel_dir, speed=75):
+def turn(left, right, rel_dir, speed=60):
     # rel_dir: +1 = right 90°, -1 = left 90°, 2 = U-turn
     # Turn for minimum time then until junction sensors (pins 8 or 11) detect a line
     
     print(f"Starting turn with rel_dir={rel_dir}, speed={speed}")
     start_time = ticks_ms()
-    min_turn_time = 500  # 1.5 seconds minimum turn time
+    min_turn_time = 1500  # 1.5 seconds minimum turn time
     
     if rel_dir == +1:
-        # Turn right until junction sensor detects line
+        # Turn right until both line tracking sensors detect line
         print("Turning right...")
         left.Forward(speed); right.Reverse(speed)
         # Wait minimum time first
         while ticks_ms() - start_time < min_turn_time:
             pass  # Keep turning for minimum time
-        # Then check for line detection
-        while read_sensor(9) == 0:  # Continue turning while no line detected
+        # Then check for line detection on both line tracking sensors
+        while not (read_sensor(9) == 0 and read_sensor(10) == 0):  # Continue turning until both sensors detect line
             pass  # Keep turning
         left.off(); right.off()
         print("Right turn completed")
         
     elif rel_dir == -1:
-        # Turn left until junction sensor detects line
+        # Turn left until both line tracking sensors detect line
         print("Turning left...")
         left.Reverse(speed); right.Forward(speed)
         # Wait minimum time first
         while ticks_ms() - start_time < min_turn_time:
             pass  # Keep turning for minimum time
-        # Then check for line detection
-        while read_sensor(10) == 0:  # Continue turning while no line detected
+        # Then check for line detection on both line tracking sensors
+        while not (read_sensor(9) == 0 and read_sensor(10) == 0):  # Continue turning until both sensors detect line
             pass  # Keep turning
         left.off(); right.off()
         print("Left turn completed")
@@ -84,12 +86,12 @@ def turn(left, right, rel_dir, speed=75):
         # Wait minimum time first (double for U-turn)
         while ticks_ms() - start_time < min_turn_time * 2:
             pass  # Keep turning for minimum time
-        # First, turn past the current line
+        # First, turn past the current line (wait until line tracking sensors are off the line)
         while read_sensor(9) == 0 or read_sensor(10) == 0:  # Turn while still on line
             pass  # Keep turning past current line
         print("Passed current line, continuing turn...")
-        # Then continue turning until we find the line again
-        while read_sensor(8) == 1 and read_sensor(11) == 1:  # Continue turning while no line detected
+        # Then continue turning until both line tracking sensors find the line again
+        while not (read_sensor(9) == 0 and read_sensor(10) == 0):  # Continue turning until both sensors detect line
             pass  # Keep turning until line found again
         left.off(); right.off()
         print("U-turn completed")
@@ -102,20 +104,18 @@ def read_sensor(pin_num):
 
 
 def line_follow(left, right):
-    base = 80
-    diff = (read_sensor(9) - read_sensor(10)) * 15
-    left.Forward(base - diff); right.Forward(base + diff)
+    base, diff = 80, 20
 
-    # LT, RT = [read_sensor(i) for i in (9, 10)]
+    LT, RT = [read_sensor(i) for i in (9, 10)]
 
-    # if LT == 1 and RT == 1:
-    #     left.Forward(base); right.Forward(base)
+    if LT == 1 and RT == 1:
+        left.Forward(base); right.Forward(base)
     
-    # if LT == 1 and RT == 0:
-    #     left.Forward(base-diff); right.Forward(base)
+    if LT == 1 and RT == 0:
+        left.Forward(base-diff); right.Forward(base)
     
-    # if LT == 0 and RT == 1:
-    #     left.Forward(base); right.Forward(base-diff)
+    if LT == 0 and RT == 1:
+        left.Forward(base); right.Forward(base-diff)
     
     # if LT == 0 and RT == 0:
     #     left.off(); right.off()
@@ -125,7 +125,7 @@ def navigate_path(path):
     global junction_detected, current_path_index, robot_state
     
     left, right = Motor(4, 5), Motor(7, 6)
-    direction = 0  # starting orientation
+    direction = 3  # starting orientation
     
     # Set up junction detection interrupts on pins 8 and 11
     junction_pin1 = Pin(8, Pin.IN, Pin.PULL_UP)
@@ -181,7 +181,7 @@ def navigate_path(path):
                         direction = new_dir
                         
                         # Move forward slightly to clear junction
-                        # move_forward(left, right, dist_m=0.1)
+                        move_forward(left, right, dist_m=0.1)
                         
                         print(f"Completed navigation from node {current_node}, continuing line following")
                     
@@ -206,26 +206,16 @@ def navigate_path(path):
 if __name__ == "__main__":
     # Example: Navigate from BoxInside to Red
     start_node = "BoxInside"
-    end_node = "UpperRackA3"
+    end_node = "Red"
     
-    # # Find the shortest path using the navigation module
+    # Find the shortest path using the navigation module
     path = find_shortest_path(start_node, end_node)
     
-    # print(path)
+    print(path)
 
-    # path = ["BoxInside", "BoxEntrance", "BoxJunction", "GreenJunction", "BlueJunction", "LowerRackA6", "LowerRackA5", "LowerRackA4", "LowerRackA3", "LowerRackA2", "LowerRackA1", "LeftCross", "BackLeftTurn", "LowerRamp", "BackRightTurn", "RightCross", "LowerRampB6", "LowerRackB5", "LowerRackB4", "LowerRackB3", "LowerRackB2", "LowerRackB1", "RedJunction", "YellowJunction", "BoxJunction", "BoxEntrance", "BoxInside"]
-
-    # leftMotor = Motor(4, 5)
-    # rightMotor = Motor(7, 6)
-    # try:
-    #     while True:
-    #         line_follow(leftMotor, rightMotor)
-    # except KeyboardInterrupt:
-    #     leftMotor.off()
-    #     rightMotor.off()
-
-    navigate_path(path)
-
-    path2 = find_shortest_path(end_node, start_node)
-
-    navigate_path(path2)
+    # if path:
+    #     print(f"Navigating from {start_node} to {end_node}")
+    #     print(f"Path: {' -> '.join(path)}")
+    #     navigate_path(path)
+    # else:
+    #     print(f"Could not find path from {start_node} to {end_node}")
