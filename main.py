@@ -3,7 +3,7 @@ sys.path.append('src')
 
 from machine import Pin, PWM
 from utime import sleep, ticks_ms
-from Controller.navigation import find_shortest_path
+from Controller.navigation import maze_map, find_shortest_path, relative_turn
 
 # ------------------ GLOBAL STATE ------------------
 

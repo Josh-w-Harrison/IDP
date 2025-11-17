@@ -182,27 +182,3 @@ def get_node_connections(node):
     else:
         print(f"Node '{node}' not found in maze map")
         return None
-
-# Example usage and testing
-if __name__ == "__main__":
-    # Test the pathfinding
-    print("=== Navigation System Test ===")
-    print(f"Total nodes in maze: {len(get_all_nodes())}")
-    print(f"All nodes: {get_all_nodes()}")
-    print()
-    
-    # Test pathfinding examples
-    test_cases = [
-        ("BoxInside", "Red"),
-        ("Green", "UpperRackA6"),
-        ("Blue", "Yellow"),
-        ("LowerRackA1", "UpperRackB6")
-    ]
-    
-    for start, end in test_cases:
-        path = find_shortest_path(start, end)
-        if path:
-            print(f"✓ Path found: {' -> '.join(path)}")
-        else:
-            print(f"✗ No path found from {start} to {end}")
-        print()
