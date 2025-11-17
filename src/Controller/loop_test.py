@@ -1,90 +1,17 @@
 import sys
 sys.path.append('src/Actuators')
+sys.path.append('src/Sensors')
 
 from machine import Pin, PWM
 from utime import sleep, ticks_ms
+import state_machine
+import Tests.junctions_line_following as junctions_line_following
+from Sensors import sensor_pins
+from Actuators import actuator_class
 
-
-class Motor:
-    def __init__(self, dirPin, PWMPin):
-        self.mDir = Pin(dirPin, Pin.OUT)
-        self.pwm = PWM(Pin(PWMPin))
-        self.pwm.freq(1000)
-        self.off()
-
-    def off(self):
-        self.pwm.duty_u16(0)
-
-    def Forward(self, speed=100):
-        self.mDir.value(0)
-        self.pwm.duty_u16(int(65535 * speed / 100))
-
-    def Reverse(self, speed=50):
-        self.mDir.value(1)
-        self.pwm.duty_u16(int(65535 * speed / 100))
-
-    def _move(self, direction, speed):
-        self.mDir.value(direction)
-        self.pwm.duty_u16(int(65535 * speed / 100))
-
-def move_forward(motor_left, motor_right, speed, distance_m):
-    # Distance → approximate duration (calibration needed!)
-    # Assuming 0.2 m/s base speed at 60% PWM → scale linearly
-    base_speed_m_per_s = 0.2 * (speed / 60)
-    time_s = distance_m / base_speed_m_per_s
-    print(f"FORWARD {distance_m:.2f} m  (≈ {time_s:.2f} s)")
-
-    motor_left.Forward(speed)
-    motor_right.Forward(speed)
-    sleep(time_s)
-    motor_left.off()
-    motor_right.off()
-
-def move_reverse(motor_left, motor_right, speed, distance_m):
-    base_speed_m_per_s = 0.2 * (speed / 60)
-    time_s = distance_m / base_speed_m_per_s
-    print(f"REVERSE {distance_m:.2f} m ({time_s:.2f} s)")
-    motor_left.Reverse(speed); motor_right.Reverse(speed)
-    sleep(time_s)
-    motor_left.off(); motor_right.off()
-
-
-def turn_left(motor_left, motor_right, turning_speed=40, turn_time=1.0):
-    print(f"TURN LEFT for {turn_time:.2f} s")
-    motor_left.Reverse(turning_speed)
-    motor_right.Forward(turning_speed)
-    sleep(turn_time)
-    motor_left.off()
-    motor_right.off()
-
-
-def turn_right(motor_left, motor_right, turning_speed=40, turn_time=1.0):
-    print(f"TURN RIGHT for {turn_time:.2f} s")
-    motor_left.Forward(turning_speed)
-    motor_right.Reverse(turning_speed)
-    sleep(turn_time)
-    motor_left.off()
-    motor_right.off()
-
-def read_sensor(pin_num):
-    sensor = Pin(pin_num, Pin.IN, Pin.PULL_UP)  # <-- use pull-up instead
-    return sensor.value()  # 1=white (on line), 0=black (off line)
-
-# === LINE SENSORS (ADJUST PINS TO YOUR BOARD!) ===
-s16 = read_sensor(9)   # leftmost
-s17 = read_sensor(10)
-s18 = read_sensor(11)
-s19 = read_sensor(12)  # rightmost
 
 base_speed = 60
 turn_speed = 35
-
-def get_line_binary():
-    s16 = read_sensor(9)   # leftmost
-    s17 = read_sensor(10)
-    s18 = read_sensor(11)
-    s19 = read_sensor(12)  # rightmost`
-    return (s16 << 3) | (s17 << 2) | (s18 << 1) | s19
 
 def detect_junction(line_binary):
     # FULL JUNCTION (1111 = 15)
@@ -127,8 +54,8 @@ def junction_turn(right=True):
     print("Turning at junction")
     turn_time = 0.9
 
-    left_motor = Motor(4, 5)
-    right_motor = Motor(7, 6)
+    left_motor = actuator_class.Motor(4, 5)
+    right_motor = actuator_class.Motor(7, 6)
 
     # go straight before turning
     left_motor.Forward(60)
@@ -159,10 +86,10 @@ def line_following(motor_left, motor_right, base_speed=60, soft_turn_speed=35, h
     print("=== Entering continuous line-following loop ===")
 
     while True:
-        s16 = read_sensor(9)   # leftmost
-        s17 = read_sensor(10)
-        s18 = read_sensor(11)
-        s19 = read_sensor(12)  # rightmost
+        s16 = sensor_pins.read_sensor(9)   # leftmost
+        s17 = sensor_pins.read_sensor(10)
+        s18 = sensor_pins.read_sensor(11)
+        s19 = sensor_pins.read_sensor(12)  # rightmost
 
         # --- JUNCTION DETECTION ---
         if (s16 == 1 and s17 == 1 and s18 == 1 and s19 == 1) or \
@@ -243,23 +170,14 @@ def follow_line_for_distance(motor_left, motor_right, distance_m, speed=60):
 
 
 
-def grab():
-    print("GRAB closing gripper")
-    sleep(1)
-
-
-def release():
-    print("RELEASE opening gripper")
-    sleep(1)
-
 def manual_navigation():
-    motor_left = Motor(dirPin=4, PWMPin=5)
-    motor_right = Motor(dirPin=7, PWMPin=6)
+    motor_left = actuator_class.Motor(dirPin=4, PWMPin=5)
+    motor_right = actuator_class.Motor(dirPin=7, PWMPin=6)
 
     print("Starting manual navigation sequence...")
 
     # Step 1: Forward 0.4 m (time-based as before)
-    move_forward(motor_left, motor_right, speed=70, distance_m=0.55)
+    state_machine.move_forward(motor_left, motor_right, speed=70, distance_m=0.55)
 
     # Step 3: LINE FOLLOWING instead of blind forward 1.1 m
     print("STEP 3: line-following for ~3.0 m")
