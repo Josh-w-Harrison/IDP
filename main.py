@@ -1,6 +1,9 @@
+import sys
+sys.path.append('src')
+
 from machine import Pin, PWM
 from utime import sleep, ticks_ms
-
+from Controller.navigation import find_shortest_path
 
 # ------------------ GLOBAL STATE ------------------
 
@@ -112,45 +115,8 @@ def line_follow(left, right):
     if LT == 0 and RT == 1:
         left.Forward(base); right.Forward(base-diff)
     
-    if LT == 0 and RT == 0:
-        left.off(); right.off()
-
-
-# ------------------ GRAPH NAVIGATION ------------------
-
-# Map[node][neighbor] = direction (0=N, 1=E, 2=S, 3=W)
-maze_map = {
-    0: {1: 0},
-    1: {2: 3},
-    2: {3: 2, 4: 3},
-    4: {5: 2, 6: 0},
-    6: {7: 0},
-    7: {8: 0},
-    8: {9: 0},
-    9: {10: 0},
-    10: {11: 0},
-    11: {12: 0},
-    12: {13: 0},
-    13: {14: 1},
-    14: {15: 1},
-    15: {16: 2},
-    16: {17: 2},
-    17: {18: 2},
-    18: {19: 2},
-    19: {20: 2},
-    20: {21: 2},
-    21: {22: 2},
-    22: {23: 2},
-    23: {24: 3},
-    24: {1: 3},
-}
-
-def relative_turn(current_dir, new_dir):
-    diff = (new_dir - current_dir) % 4
-    if diff == 1:  return +1   # turn right
-    if diff == 3:  return -1   # turn left
-    if diff == 2:  return  2   # U-turn
-    return 0                   # straight
+    # if LT == 0 and RT == 0:
+    #     left.off(); right.off()
 
 
 def navigate_path(path):
@@ -236,5 +202,18 @@ def navigate_path(path):
 # ------------------ MAIN ------------------
 
 if __name__ == "__main__":
-    path = [1, 2, 4, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24]
-    navigate_path(path)
+    # Example: Navigate from BoxInside to Red
+    start_node = "BoxInside"
+    end_node = "Red"
+    
+    # Find the shortest path using the navigation module
+    path = find_shortest_path(start_node, end_node)
+    
+    print(path)
+
+    # if path:
+    #     print(f"Navigating from {start_node} to {end_node}")
+    #     print(f"Path: {' -> '.join(path)}")
+    #     navigate_path(path)
+    # else:
+    #     print(f"Could not find path from {start_node} to {end_node}")
