@@ -8,6 +8,7 @@ from Controller.navigation import maze_map, find_shortest_path, relative_turn
 # ------------------ GLOBAL STATE ------------------
 
 junction_detected = False
+button_pressed = False
 current_path_index = 0
 robot_state = "line_following"  # "line_following", "navigating", "completed"
 
@@ -16,6 +17,11 @@ def junction_interrupt(pin):
     global junction_detected
     print(f"INTERRUPT FIRED on pin {pin}! Sensor value: {pin.value()}")
     junction_detected = True
+
+def button_interrupt(pin):
+    global button_pressed
+    print(f"INTERRUPT FIRED on pin {pin}! Sensor value: {pin.value()}")
+    button_pressed = True
 
 
 # ------------------ MOTOR CONTROL ------------------
@@ -133,16 +139,35 @@ def navigate_path(path):
     junction_pin1.irq(trigger=Pin.IRQ_RISING, handler=junction_interrupt)
     junction_pin2.irq(trigger=Pin.IRQ_RISING, handler=junction_interrupt)
     
-    robot_state = "line_following"
+    button_pin = Pin(12, Pin.IN, Pin.PULL_DOWN)
+    button_pin.irq(trigger=Pin.IRQ_RISING, handler=button_interrupt)
+
+    robot_state = "stopped"
     current_path_index = 0
 
     try:
         while current_path_index < len(path) - 1:
+
+            print( f"Current robot state: {robot_state}, at path index: {current_path_index}" )
+
+            if robot_state == "stopped":
+                print("Robot is stopped, waiting for button press to start line following")
+                if button_pressed:
+                    print("Button pressed, starting line following")
+                    robot_state = "line_following"
+                    button_pressed = False
+
             if robot_state == "line_following":
                 # Continue line following until junction detected
                 print(f"Line following mode, looking for junction to go from index {current_path_index} to {current_path_index + 1}")
                 print(f"Current sensors - Pin 8: {read_sensor(8)}, Pin 11: {read_sensor(11)}")
                 
+                if button_pressed:
+                    print("Button pressed, stopping robot")
+                    robot_state = "stopped"
+                    button_pressed = False
+                    left.off(); right.off()
+
                 while not junction_detected:
                     line_follow(left, right)
                     # Add periodic sensor checking for debugging
