@@ -8,7 +8,7 @@ from Controller.navigation import maze_map, find_shortest_path, relative_turn
 # ------------------ GLOBAL STATE ------------------
 
 junction_detected = False
-button_pressed = False
+stopped = True
 current_path_index = 0
 robot_state = "line_following"  # "line_following", "navigating", "completed"
 
@@ -19,9 +19,9 @@ def junction_interrupt(pin):
     junction_detected = True
 
 def button_interrupt(pin):
-    global button_pressed
+    global stopped
     print(f"INTERRUPT FIRED on pin {pin}! Sensor value: {pin.value()}")
-    button_pressed = True
+    stopped = not stopped
 
 
 # ------------------ MOTOR CONTROL ------------------
@@ -110,21 +110,8 @@ def read_sensor(pin_num):
 def line_follow(left, right):
     base = 80
     diff = (read_sensor(9) - read_sensor(10)) * 15
-    left.Forward(base - diff); right.Forward(base + diff)
-
-    # LT, RT = [read_sensor(i) for i in (9, 10)]
-
-    # if LT == 1 and RT == 1:
-    #     left.Forward(base); right.Forward(base)
-    
-    # if LT == 1 and RT == 0:
-    #     left.Forward(base-diff); right.Forward(base)
-    
-    # if LT == 0 and RT == 1:
-    #     left.Forward(base); right.Forward(base-diff)
-    
-    # if LT == 0 and RT == 0:
-    #     left.off(); right.off()
+    #left.Forward(base - diff); right.Forward(base + diff)
+    left.Reverse(base+diff); right.Reverse(base-diff)
 
 
 def navigate_path(path):
@@ -138,38 +125,30 @@ def navigate_path(path):
     junction_pin2 = Pin(11, Pin.IN, Pin.PULL_UP)
     junction_pin1.irq(trigger=Pin.IRQ_RISING, handler=junction_interrupt)
     junction_pin2.irq(trigger=Pin.IRQ_RISING, handler=junction_interrupt)
-    
-    button_pin = Pin(12, Pin.IN, Pin.PULL_DOWN)
-    button_pin.irq(trigger=Pin.IRQ_RISING, handler=button_interrupt)
 
-    robot_state = "stopped"
+    robot_state = "line_following"
     current_path_index = 0
+
+    print(robot_state)
 
     try:
         while current_path_index < len(path) - 1:
 
             print( f"Current robot state: {robot_state}, at path index: {current_path_index}" )
 
-            if robot_state == "stopped":
-                print("Robot is stopped, waiting for button press to start line following")
-                if button_pressed:
-                    print("Button pressed, starting line following")
-                    robot_state = "line_following"
-                    button_pressed = False
+            if stopped:
+                break
 
             if robot_state == "line_following":
                 # Continue line following until junction detected
                 print(f"Line following mode, looking for junction to go from index {current_path_index} to {current_path_index + 1}")
                 print(f"Current sensors - Pin 8: {read_sensor(8)}, Pin 11: {read_sensor(11)}")
-                
-                if button_pressed:
-                    print("Button pressed, stopping robot")
-                    robot_state = "stopped"
-                    button_pressed = False
-                    left.off(); right.off()
 
                 while not junction_detected:
                     line_follow(left, right)
+
+                if stopped:
+                    break
                     # Add periodic sensor checking for debugging
                     # if ticks_ms() % 1000 < 50:  # Print every ~1 second
                     #     print(f"Still line following... Pin 8: {read_sensor(8)}, Pin 11: {read_sensor(11)}")
@@ -199,6 +178,8 @@ def navigate_path(path):
                         if rel != 0:
                             print(f"Executing turn: {rel}")
                             turn(left, right, rel)
+                            if stopped:
+                                break
                         else:
                             print("No turn needed - going straight")
                         
@@ -224,6 +205,7 @@ def navigate_path(path):
     
     left.off()
     right.off()
+    return
 
 
 # ------------------ MAIN ------------------
@@ -249,8 +231,11 @@ if __name__ == "__main__":
     #     leftMotor.off()
     #     rightMotor.off()
 
-    navigate_path(path)
+    button_pin = Pin(12, Pin.IN, Pin.PULL_DOWN)
+    button_pin.irq(trigger=Pin.IRQ_RISING, handler=button_interrupt)
 
-    path2 = find_shortest_path(end_node, start_node)
+    print(stopped)
 
-    navigate_path(path2)
+    while True:
+        if not stopped:
+            navigate_path(path)
