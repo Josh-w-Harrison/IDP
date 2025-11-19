@@ -2,7 +2,7 @@ from machine import Pin
 from utime import sleep
 
 def test_led():
-    led_pin = 28  # Pin 28 = GP28 (labelled 34 on the jumper)
+    led_pin = 22  # Pin 28 = GP28 (labelled 34 on the jumper)
     led = Pin(led_pin, Pin.OUT)
 
     while True:

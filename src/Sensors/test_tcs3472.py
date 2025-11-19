@@ -82,13 +82,33 @@ class TCS34725:
     def calculate_lux(self, r, g, b):
         """Approximate lux value."""
         return int((-0.32466 * r) + (1.57837 * g) + (-0.73191 * b))
+    
+def normalize(r, g, b, c):
+    if c == 0:
+        return 0, 0, 0
+    return r/c, g/c, b/c
+
+def classify_color(rn, gn, bn, temp):
+    if rn > gn and rn > bn:
+        return "red"
+    if bn > rn and bn > gn and temp<10000:
+        return "blue"
+    if bn > gn > rn and (gn - rn) > 0.10 and temp>10000:
+        return "green"
+    if (gn > rn) and bn < 0.35 and (gn + rn) > 0.60:
+        return "yellow"
+    return "unknown"
 
 # -------------------------
 # Main program
 # -------------------------
 try:
+    power_on= Pin(22, Pin.OUT)
+    power_on.value(1)
+    time.sleep(1)
     # Initialize I2C (adjust pins for your board)
     i2c = I2C(0, scl=Pin(17), sda=Pin(16), freq=400000)
+    print(i2c.scan())
 
     sensor = TCS34725(i2c)
 
@@ -100,8 +120,11 @@ try:
         print("Clear: {}, Red: {}, Green: {}, Blue: {}".format(clear, red, green, blue))
         print("Color Temp: {} K, Lux: {}".format(temp, lux))
         print("-" * 40)
+
+        rn, gn, bn = normalize(red, green, blue, clear)
+        print('Classified color')
+        print(classify_color(rn, gn, bn, temp))
         time.sleep(1)
 
 except Exception as e:
     print("Error:", e)
-
