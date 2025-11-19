@@ -119,6 +119,10 @@ def navigate_path(path):
     
     left, right = Motor(4, 5), Motor(7, 6)
     direction = 0  # starting orientation
+
+    current_path_index = 0
+    junction_detected = False
+    robot_state = "line_following"
     
     # Set up junction detection interrupts on pins 8 and 11
     junction_pin1 = Pin(8, Pin.IN, Pin.PULL_UP)
@@ -137,18 +141,22 @@ def navigate_path(path):
             print( f"Current robot state: {robot_state}, at path index: {current_path_index}" )
 
             if stopped:
-                break
+                left.off()
+                right.off()
+                return
 
             if robot_state == "line_following":
                 # Continue line following until junction detected
                 print(f"Line following mode, looking for junction to go from index {current_path_index} to {current_path_index + 1}")
                 print(f"Current sensors - Pin 8: {read_sensor(8)}, Pin 11: {read_sensor(11)}")
 
-                while not junction_detected:
+                while not junction_detected and not stopped:  # Check stopped flag here
                     line_follow(left, right)
 
                 if stopped:
-                    break
+                    left.off()
+                    right.off()
+                    return
                     # Add periodic sensor checking for debugging
                     # if ticks_ms() % 1000 < 50:  # Print every ~1 second
                     #     print(f"Still line following... Pin 8: {read_sensor(8)}, Pin 11: {read_sensor(11)}")
@@ -179,7 +187,9 @@ def navigate_path(path):
                             print(f"Executing turn: {rel}")
                             turn(left, right, rel)
                             if stopped:
-                                break
+                                left.off()
+                                right.off()
+                                return
                         else:
                             print("No turn needed - going straight")
                         
