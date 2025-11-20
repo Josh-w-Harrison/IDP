@@ -1,8 +1,11 @@
+import sys
+sys.path.append('src')
+
 from machine import Pin
-from utime import sleep
+from utime import sleep, ticks_ms
 from Controller.motor import Motor
 from Controller.line_sensor import LineSensor
-from Controller.navigation import maze_map, relative_turn
+from Controller.navigation import maze_map, relative_turn, find_shortest_path
 
 
 class Robot:
@@ -20,8 +23,8 @@ class Robot:
         self.right_motor = Motor(7, 6)
 
         # Sensor pins
-        self.line_left_pin = 10
-        self.line_right_pin = 9
+        self.line_left_pin = 9
+        self.line_right_pin = 10
         self.junction_left_pin = 8
         self.junction_right_pin = 11
         self.button_pin = 12
@@ -71,50 +74,119 @@ class Robot:
             self.active = True
             self.yellow_light(0)
 
-
-    def move(self, base_speed, diff_speed=0):
-        """Move the robot with differential speeds."""
-        self.left_motor.speed(base_speed + diff_speed)
-        self.right_motor.speed(base_speed - diff_speed)
-
     def line_follow(self, base_speed=80, correction_factor=15):
         """Follow a line using differential steering."""
         left_sensor = LineSensor.read(self.line_left_pin)
         right_sensor = LineSensor.read(self.line_right_pin)
-        diff = (right_sensor - left_sensor) * correction_factor
+        diff = (left_sensor - right_sensor) * correction_factor
 
-        # Reverse direction for your setup
-        self.move(base_speed, diff)
+        self.left_motor.speed(base_speed - diff)
+        self.right_motor.speed(base_speed + diff)
+
+    def line_follow_until_lost(self, base_speed=80, correction_factor=15):
+        """Follow a line using differential steering."""
+        while True:
+            left_sensor = LineSensor.read(self.line_left_pin)
+            right_sensor = LineSensor.read(self.line_right_pin)
+            diff = (left_sensor - right_sensor) * correction_factor
+
+            if left_sensor == 0 and right_sensor == 0:
+                self.left_motor.off()
+                self.right_motor.off()
+                break
+
+            self.left_motor.speed(base_speed - diff)
+            self.right_motor.speed(base_speed + diff)
+
+    def reverse_from_bay(self, speed=60):
+
+        self.left_motor.speed(-speed)
+        self.right_motor.speed(-speed)
+
+        while LineSensor.read(self.junction_left_pin) == 0 or LineSensor.read(self.junction_right_pin) == 0:
+            pass
+
+        self.left_motor.off()
+        self.right_motor.off()
+
+        #turn out of bay - but move left wheel slower - so as to not hit the line on next bay - SHOULD BE FIXED MECHANICALLY
+        start_time = ticks_ms()
+        min_turn_time = 1000  # 1.5 seconds minimum turn time
+        self.left_motor.speed(speed/1.5)
+        self.right_motor.speed(-speed)
+        while ticks_ms() - start_time < min_turn_time:
+            pass
+        while LineSensor.read(self.line_left_pin) == 0:
+            pass
+
+        self.direction = self.direction + 1
+
+        self.left_motor.off()
+        self.right_motor.off()
+
+        while LineSensor.read(self.junction_left_pin) == 0 and LineSensor.read(self.junction_right_pin) == 0:
+            self.line_follow(50, 30)
+
+        self.left_motor.off()
+        self.right_motor.off()
+
+
 
     def turn(self, rel_dir, speed=75):
         """
         Execute a turn based on relative direction.
-        """""
-
-        match rel_dir:
-            case 1:  # Turn right
-                self.move(0 , speed)
-                while LineSensor.read(self.line_left_pin) == 0:
-                    pass
-            case -1:  # Turn left
-                self.move(0 , -speed)
-                while LineSensor.read(self.line_right_pin) == 0:
-                    pass
-            case 2:  # U-turn
-                self.move(0 , speed)
-                while LineSensor.read(self.line_right_pin) == 0:
-                    pass
-
-        self.move(0)
-
-
-    def navigate_path(self, path):
-        """
-        Navigate along a predefined path using line following and junction detection.
+        Updates the robot's direction state after turning.
 
         Args:
-            path: List of node names representing the path to follow
+            rel_dir: Relative turn direction (+1=right, -1=left, 2=U-turn, 0=straight)
+            speed: Motor speed during turn (default 75)
         """
+        start_time = ticks_ms()
+        min_turn_time = 750  # 1.5 seconds minimum turn time
+
+        if rel_dir == 1:  # Turn right
+            self.left_motor.speed(speed)
+            self.right_motor.speed(-speed)
+            while ticks_ms() - start_time < min_turn_time:
+                pass
+            while LineSensor.read(self.line_left_pin) == 0:
+                pass
+        elif rel_dir == -1:  # Turn left
+            self.left_motor.speed(-speed)
+            self.right_motor.speed(speed)
+            while ticks_ms() - start_time < min_turn_time:
+                pass
+            while LineSensor.read(self.line_right_pin) == 0:
+                pass
+        elif rel_dir == 2:  # U-turn
+            self.left_motor.speed(-speed)
+            self.right_motor.speed(speed)
+            while ticks_ms() - start_time < min_turn_time:
+                pass
+            while LineSensor.read(self.line_right_pin) == 0:
+                pass
+
+        self.left_motor.off()
+        self.right_motor.off()
+
+        # Update direction state based on relative turn
+        self.direction = (self.direction + rel_dir) % 4
+
+    def navigate_path(self, destination_node):
+        """
+        Navigate from the robot's current node to the destination node.
+        Automatically finds the shortest path and updates the robot's current node.
+
+        Args:
+            destination_node: The target node name (string)
+        """
+        # Find the shortest path from current position to destination
+        path = find_shortest_path(self.node, destination_node)
+
+        if path is None:
+            print(f"Error: Cannot find path from {self.node} to {destination_node}")
+            return
+
         # Reset navigation state
         current_path_index = 0
         self.junction_detected = False
@@ -129,27 +201,36 @@ class Robot:
 
                 # Check if stopped
                 if self.stopped:
-                    self.move(0)
+                    self.right_motor.off()
+                    self.left_motor.off()
                     return
 
                 if self.robot_state == self.STATE_LINE_FOLLOWING:
                     self._follow_line_to_junction(path, current_path_index)
 
                     if self.stopped:
-                        self.move(0)
+                        self.right_motor.off()
+                        self.left_motor.off()
                         return
 
                     if self.junction_detected:
+                        sleep(0.1)
                         current_path_index = self._handle_junction(path, current_path_index)
 
             print("Path navigation completed!")
             self.robot_state = self.STATE_COMPLETED
 
+            # Update robot's current node to the destination
+            self.node = destination_node
+            print(f"Robot now at node: {self.node}")
+
         except KeyboardInterrupt:
             print("Navigation interrupted by user")
-            self.move(0)
+            self.right_motor.off()
+            self.left_motor.off()
 
-        self.move(0)
+        self.right_motor.off()
+        self.left_motor.off()
 
     def _follow_line_to_junction(self, path, current_path_index):
         """Continue line following until a junction is detected."""
@@ -166,6 +247,9 @@ class Robot:
         current_path_index += 1
         current_node = path[current_path_index]
 
+        # Update robot's current node
+        self.node = current_node
+
         print(f"Junction detected! Now at node: {current_node}")
 
         # Check if there's a next node to navigate to
@@ -177,7 +261,7 @@ class Robot:
             print(f"Navigation: {current_node} -> {next_node}")
             print(f"Direction change: {self.direction} -> {new_dir} (rel_turn={rel})")
 
-            # Execute turn if needed
+            # Execute turn if needed (this will also update self.direction)
             if rel != 0:
                 print(f"Executing turn: {rel}")
                 self.turn(rel)
@@ -186,8 +270,12 @@ class Robot:
             else:
                 print("No turn needed - going straight")
 
-            # Update direction
-            self.direction = new_dir
+
+            self.left_motor.speed(80)
+            self.right_motor.speed(80)
+            sleep(0.1)
+            self.left_motor.off()
+            self.right_motor.off()
 
             print(f"Completed turn at {current_node}, resuming line following")
 

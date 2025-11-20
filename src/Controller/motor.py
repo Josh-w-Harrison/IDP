@@ -20,6 +20,7 @@ class Motor:
             self.off()
         else:
             direction = 1 if speed < 0 else 0
+            #print(speed, direction)
             self.dir_pin.value(direction)
             self.pwm.duty_u16(int(65535 * abs(speed) / 100))
 
