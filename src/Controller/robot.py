@@ -1,7 +1,7 @@
 import sys
 sys.path.append('src')
 
-from machine import Pin
+from machine import Pin, soft_reset, reset
 from utime import sleep, ticks_ms
 from Controller.motor import Motor
 from Controller.line_sensor import LineSensor
@@ -32,11 +32,13 @@ class Robot:
 
         # Navigation state
         self.stopped = True
+        self.is_reset = True
         self.junction_detected = False
         self.robot_state = self.STATE_LINE_FOLLOWING
         self.direction = 0  # Current orientation
         self.node = "BoxInside"
         self.active = False
+        self.last_button_press = 0
 
         # Setup flashing yellow light
         self.yellow_light = Pin(self.yellow_light_pin, Pin.OUT)
@@ -58,10 +60,30 @@ class Robot:
         self.junction_detected = True
 
     def _button_interrupt(self, pin):
-        """Interrupt handler for button press (stop/start toggle)."""
+        """Interrupt handler for button press (start/stop/reset)."""
+        # Debounce the button to prevent multiple triggers
+        current_time = ticks_ms()
+        if current_time - self.last_button_press < 500:  # 500ms debounce delay
+            return
+        self.last_button_press = current_time
+
         print(f"INTERRUPT: Button pressed on pin {pin}! Value: {pin.value()}")
-        self.stopped = not self.stopped
-        print(f"Robot {'STOPPED' if self.stopped else 'STARTED'}")
+
+        if self.is_reset:
+            # First press: Start the robot
+            self.stopped = False
+            self.is_reset = False
+            print("Robot STARTED")
+        elif not self.stopped:
+            # Second press (while running): Stop the robot
+            self.stopped = True
+            self.left_motor.off()
+            self.right_motor.off()
+            print("Robot STOPPED")
+        else:
+            # Third press (while stopped): Reset the program
+            print("Resetting program...")
+            raise KeyboardInterrupt("Button pressed - resetting robot")
 
     def update_node(self, new_node):
         """Update the current node of the robot."""
@@ -69,10 +91,10 @@ class Robot:
 
         if new_node == "BoxInside":
             self.active = False
-            self.yellow_light(1)
+            self.yellow_light.value(1)
         else:
             self.active = True
-            self.yellow_light(0)
+            self.yellow_light.value(0)
 
     def line_follow(self, base_speed=80, correction_factor=15):
         """Follow a line using differential steering."""
@@ -200,18 +222,18 @@ class Robot:
                 print(f"State: {self.robot_state}, Path index: {current_path_index}/{len(path)-1}")
 
                 # Check if stopped
-                if self.stopped:
-                    self.right_motor.off()
-                    self.left_motor.off()
-                    return
+                # if self.stopped:
+                #     self.right_motor.off()
+                #     self.left_motor.off()
+                #     return
 
                 if self.robot_state == self.STATE_LINE_FOLLOWING:
                     self._follow_line_to_junction(path, current_path_index)
 
-                    if self.stopped:
-                        self.right_motor.off()
-                        self.left_motor.off()
-                        return
+                    # if self.stopped:
+                    #     self.right_motor.off()
+                    #     self.left_motor.off()
+                    #     return
 
                     if self.junction_detected:
                         sleep(0.1)
@@ -221,7 +243,7 @@ class Robot:
             self.robot_state = self.STATE_COMPLETED
 
             # Update robot's current node to the destination
-            self.node = destination_node
+            self.update_node(destination_node)
             print(f"Robot now at node: {self.node}")
 
         except KeyboardInterrupt:
@@ -248,7 +270,7 @@ class Robot:
         current_node = path[current_path_index]
 
         # Update robot's current node
-        self.node = current_node
+        self.update_node(current_node)
 
         print(f"Junction detected! Now at node: {current_node}")
 

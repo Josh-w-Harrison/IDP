@@ -2,6 +2,7 @@ import sys
 sys.path.append('src')
 # sys.path.append('src/Controller')
 
+from machine import reset
 from Controller.robot import Robot
 
 
@@ -21,19 +22,23 @@ if __name__ == "__main__":
     print(f"Starting node: {robot.node}")
 
     # Main control loop
-    while True:
-        if not robot.stopped:
-            # Navigate to LowerRackA1 from current position
-            robot.navigate_path("LowerRackA1")
+    try:
+        while True:
+            if not robot.stopped:
+                # Navigate to LowerRackA1 from current position
+                robot.navigate_path("LowerRackA1")
 
-            robot.turn(1)
+                robot.turn(1)
 
-            robot.line_follow_until_lost()
+                robot.line_follow_until_lost()
 
-            robot.reverse_from_bay()
+                robot.reverse_from_bay()
 
-            #robot.turn(1)
+                #robot.turn(1)
 
-            robot.navigate_path("BoxInside")
+                robot.navigate_path("BoxInside")
 
-            robot.stopped = True  # Prevent immediate restart after completion
+                robot.stopped = True  # Prevent immediate restart after completion
+    except KeyboardInterrupt:
+        print("SystemExit caught, resetting robot...")
+        reset()
