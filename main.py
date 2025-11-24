@@ -1,39 +1,58 @@
+from machine import Pin, I2C
+import time
+
 import sys
 sys.path.append('src')
 # sys.path.append('src/Controller')
 
-from Controller.robot import Robot
+# from Controller.robot import Robot
+from robot import Robot
+from sensors import TCS34725, vl53l0x
 
 
 # ------------------ MAIN ------------------
 
 if __name__ == "__main__":
-    # Create robot instance (starts at "BoxInside" by default)
     robot = Robot()
-
-    # robot.turn(-1)
-
-    # while True:
-    #     robot.line_follow()
+    
+    power_on= Pin(22, Pin.OUT)
+    power_on.value(1)
+    time.sleep(1)
+    i2c = I2C(0, scl=Pin(17), sda=Pin(16), freq=400000)
+    print(i2c.scan())
+    
+    sensor = TCS34725(i2c)
 
     print("Robot initialized. Press button to start/stop navigation.")
-    print(f"Initial state: {'STOPPED' if robot.stopped else 'RUNNING'}")
-    print(f"Starting node: {robot.node}")
 
-    # Main control loop
     while True:
         if not robot.stopped:
-            # Navigate to LowerRackA1 from current position
-            robot.navigate_path("LowerRackA1")
+            robot.navigate_path("UpperRackB6")
 
             robot.turn(1)
+            
+            if vl530l0x() < 200:
 
-            robot.line_follow_until_lost()
+                robot.line_follow_until_lost()
+            
+                clear, red, green, blue = sensor.read_raw()
+                temp = sensor.calculate_color_temperature(red, green, blue)
+                lux = sensor.calculate_lux(red, green, blue)
 
-            robot.reverse_from_bay()
+                print("Clear: {}, Red: {}, Green: {}, Blue: {}".format(clear, red, green, blue))
+                print("Color Temp: {} K, Lux: {}".format(temp, lux))
+                print("-" * 40)
 
-            #robot.turn(1)
+                rn, gn, bn = sensor.normalize(red, green, blue, clear)
+                print('Classified color')
+                box_colour = sensor.classify_color(rn, gn, bn, temp)
 
+                robot.reverse_from_bay()
+
+                robot.turn(1)
+
+                robot.navigate_path(box_colour)
+                
             robot.navigate_path("BoxInside")
 
             robot.stopped = True  # Prevent immediate restart after completion
