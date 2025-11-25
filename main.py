@@ -1,14 +1,8 @@
 from machine import Pin, I2C
 import time
 
-import sys
-sys.path.append('src')
-# sys.path.append('src/Controller')
-
-# from Controller.robot import Robot
 from robot import Robot
-from sensors import TCS34725, vl53l0x
-
+from sensors import TCS34725, VL53L0X
 
 # ------------------ MAIN ------------------
 
@@ -21,38 +15,40 @@ if __name__ == "__main__":
     i2c = I2C(0, scl=Pin(17), sda=Pin(16), freq=400000)
     print(i2c.scan())
     
-    sensor = TCS34725(i2c)
+    i2c_1 = I2C(1, sda=Pin(18), scl=Pin(19))
+    
+    # sensor = TCS34725(i2c)
+    
+    # distance_sensor = VL53L0X(i2c_1)
 
     print("Robot initialized. Press button to start/stop navigation.")
 
     while True:
         if not robot.stopped:
+            
             robot.navigate_path("UpperRackB6")
 
             robot.turn(1)
             
-            if vl530l0x() < 200:
-
-                robot.line_follow_until_lost()
+            robot.line_follow_until_lost()
             
-                clear, red, green, blue = sensor.read_raw()
-                temp = sensor.calculate_color_temperature(red, green, blue)
-                lux = sensor.calculate_lux(red, green, blue)
-
-                print("Clear: {}, Red: {}, Green: {}, Blue: {}".format(clear, red, green, blue))
-                print("Color Temp: {} K, Lux: {}".format(temp, lux))
-                print("-" * 40)
-
-                rn, gn, bn = sensor.normalize(red, green, blue, clear)
-                print('Classified color')
-                box_colour = sensor.classify_color(rn, gn, bn, temp)
-
-                robot.reverse_from_bay()
-
-                robot.turn(1)
-
-                robot.navigate_path(box_colour)
+            # if distance_sensor.read() < 200:
+            
+            #     box_colour = sensor.get_color()
+            #     print(box_colour)
                 
+            robot.reverse_from_bay()
+            
+            robot.turn(1)
+            
+            robot.navigate_path("RedJunction")
+            
+            robot.line_follow_until_lost()
+            
+            robot.reverse_from_bay()
+            
+            robot.turn(1)
+            
             robot.navigate_path("BoxInside")
-
+            
             robot.stopped = True  # Prevent immediate restart after completion

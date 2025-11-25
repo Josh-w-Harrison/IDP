@@ -2,6 +2,8 @@ from machine import Pin, I2C
 import time
 import math
 
+from libs.VL53L0X.VL53L0X import VL53L0X
+
 # TCS34725 I2C address
 TCS34725_ADDR = 0x29
 COMMAND_BIT = 0x80
@@ -109,20 +111,32 @@ class TCS34725:
         if (gn > rn) and bn < 0.35 and (gn + rn) > 0.60:
             return "Yellow"
         return "BoxInside"
-
-
-def vl53l0x():
-    i2c_bus = I2C(1, sda=Pin(18), scl=Pin(19))
-    # print(i2c_bus.scan())  # Get the address (nb 41=0x29, 82=0x52)
     
-    vl53l0 = VL53L0X(i2c_bus)
-    vl53l0.set_Vcsel_pulse_period(vl53l0.vcsel_period_type[0], 18)
-    vl53l0.set_Vcsel_pulse_period(vl53l0.vcsel_period_type[1], 14)
+    def get_color(self):
+        clear, red, green, blue = self.read_raw()
+        temp = self.calculate_color_temperature(red, green, blue)
+        lux = self.calculate_lux(red, green, blue)
 
-    vl53l0.start()
-    
-    distance = vl53l0.read()
+        #print("Clear: {}, Red: {}, Green: {}, Blue: {}".format(clear, red, green, blue))
+        #print("Color Temp: {} K, Lux: {}".format(temp, lux))
+        print("-" * 40)
 
-    vl53l0.stop()
-    
-    return distance
+        rn, gn, bn = self.normalize(red, green, blue, clear)
+        #print('Classified color')
+        print(self.classify_color(rn, gn, bn, temp))
+        return self.classify_color(rn, gn, bn, temp)
+
+
+class VL53l0X:
+    def __init__(self, i2c):
+        self.i2c = i2c
+        self.vl53l0 = VL53L0X(i2c)
+        
+        self.vl53l0.set_Vcsel_pulse_period(vl53l0.vcsel_period_type[0], 18)
+        self.vl53l0.set_Vcsel_pulse_period(vl53l0.vcsel_period_type[1], 14)
+
+        self.vl53l0.start()
+        
+    def distance(self):
+        
+        return self.vl53l0.read()

@@ -102,7 +102,7 @@ class Robot:
         self.left_motor.speed(-speed)
         self.right_motor.speed(-speed)
 
-        while LineSensor.read(self.junction_left_pin) == 0 or LineSensor.read(self.junction_right_pin) == 0:
+        while LineSensor.read(self.junction_left_pin) == 0 and LineSensor.read(self.junction_right_pin) == 0:
             pass
 
         self.left_motor.off()
@@ -138,10 +138,12 @@ class Robot:
         elif rel_dir == 2:  # U-turn
             self.left_motor.speed(-speed)
             self.right_motor.speed(speed)
-            while ticks_ms() - start_time < min_turn_time:
+            while ticks_ms() - start_time < min_turn_time * 1.2:
                 pass
             while LineSensor.read(self.line_right_pin) == 0:
                 pass
+
+            
 
         self.left_motor.off()
         self.right_motor.off()
@@ -170,6 +172,21 @@ class Robot:
         self.robot_state = self.STATE_LINE_FOLLOWING
 
         print(f"Starting navigation: {path[0]} -> {path[-1]}")
+        
+        # self._handle_junction(path, current_path_index)
+        
+        # next_node = path[1]
+        # new_dir = maze_map[path[0]][next_node]
+        # rel = relative_turn(self.direction, new_dir)
+
+        # Execute turn if needed (this will also update self.direction)
+        # if rel != 0:
+        #     print(f"Executing turn: {rel}")
+        #     self.turn(rel)
+        # if self.stopped:
+        #     return current_path_index
+        # else:
+        #     print("No turn needed - going straight")
 
         try:
             while current_path_index < len(path) - 1:
