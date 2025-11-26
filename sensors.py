@@ -103,14 +103,14 @@ class TCS34725:
 
     def classify_color(self, rn, gn, bn, temp):
         if rn > gn and rn > bn:
-            return "Red"
+            return "RedJunction"
         if bn > rn and bn > gn and temp<10000:
-            return "Blue"
+            return "BlueJunction"
         if bn > gn > rn and (gn - rn) > 0.10 and temp>10000:
-            return "Green"
+            return "GreenJunction"
         if (gn > rn) and bn < 0.35 and (gn + rn) > 0.60:
-            return "Yellow"
-        return "BoxInside"
+            return "YellowJunction"
+        return "BlueJunction"
     
     def get_color(self):
         clear, red, green, blue = self.read_raw()

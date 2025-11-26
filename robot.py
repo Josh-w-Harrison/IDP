@@ -136,8 +136,8 @@ class Robot:
             while LineSensor.read(self.line_right_pin) == 0:
                 pass
         elif rel_dir == 2:  # U-turn
-            self.left_motor.speed(-speed)
-            self.right_motor.speed(speed)
+            self.left_motor.speed(speed)
+            self.right_motor.speed(-speed)
             while ticks_ms() - start_time < min_turn_time * 1.2:
                 pass
             while LineSensor.read(self.line_right_pin) == 0:
@@ -150,6 +150,10 @@ class Robot:
 
         # Update direction state based on relative turn
         self.direction = (self.direction + rel_dir) % 4
+        
+    def turn_abs(self, abs_dir, speed=75):
+        rel_dir = relative_turn(self.direction, abs_dir)
+        self.turn(rel_dir)
 
     def navigate_path(self, destination_node):
         """
