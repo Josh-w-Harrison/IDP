@@ -36,8 +36,8 @@ class Robot:
         self.active = False
 
         # Setup flashing yellow light
-        self.yellow_light = Pin(self.yellow_light_pin, Pin.OUT)
-        self.yellow_light.value(1)
+        # self.yellow_light = Pin(self.yellow_light_pin, Pin.OUT)
+        # self.yellow_light.value(0)
 
         # Setup junction detection interrupts
         self.junction_pin1 = Pin(self.junction_left_pin, Pin.IN, Pin.PULL_UP)
@@ -66,10 +66,10 @@ class Robot:
 
         if new_node == "BoxInside":
             self.active = False
-            self.yellow_light(1)
+            # self.yellow_light(1)
         else:
             self.active = True
-            self.yellow_light(0)
+            # self.yellow_light(0)
 
     def line_follow(self, base_speed=80, correction_factor=15):
         """Follow a line using differential steering."""
@@ -107,6 +107,14 @@ class Robot:
 
         self.left_motor.off()
         self.right_motor.off()
+        
+    def continue_to_junction(self, speed=60):
+
+        while LineSensor.read(self.junction_left_pin) == 0 and LineSensor.read(self.junction_right_pin) == 0:
+            self.line_follow()
+
+        self.left_motor.off()
+        self.right_motor.off()
 
 
     def turn(self, rel_dir, speed=75):
@@ -136,12 +144,19 @@ class Robot:
             while LineSensor.read(self.line_right_pin) == 0:
                 pass
         elif rel_dir == 2:  # U-turn
-            self.left_motor.speed(speed)
-            self.right_motor.speed(-speed)
-            while ticks_ms() - start_time < min_turn_time * 1.2:
-                pass
-            while LineSensor.read(self.line_right_pin) == 0:
-                pass
+            dirs = set(maze_map[self.node].values())
+            turn_dirs = {self.direction, self.direction+rel_dir}
+            dir = dirs.difference(turn_dirs)
+            
+            self.turn_abs(dir.pop())
+            self.turn_abs(self.direction+rel_dir)
+            
+            # self.left_motor.speed(speed)
+            # self.right_motor.speed(-speed)
+            # while ticks_ms() - start_time < min_turn_time * 1.2:
+            #     pass
+            # while LineSensor.read(self.line_right_pin) == 0:
+            #     pass
 
             
 
@@ -154,6 +169,23 @@ class Robot:
     def turn_abs(self, abs_dir, speed=75):
         rel_dir = relative_turn(self.direction, abs_dir)
         self.turn(rel_dir)
+        
+    def uturn(self, speed=75):
+        
+        start_time = ticks_ms()
+        min_turn_time = 750
+        
+        self.left_motor.speed(speed)
+        self.right_motor.speed(-speed)
+        
+        while ticks_ms() - start_time < min_turn_time:
+            pass
+        while LineSensor.read(self.line_left_pin) == 0:
+            pass
+        
+        self.direction = (self.direction + 2) % 4
+        self.left_motor.off()
+        self.right_motor.off()
 
     def navigate_path(self, destination_node):
         """
@@ -177,20 +209,8 @@ class Robot:
 
         print(f"Starting navigation: {path[0]} -> {path[-1]}")
         
-        # self._handle_junction(path, current_path_index)
-        
-        # next_node = path[1]
-        # new_dir = maze_map[path[0]][next_node]
-        # rel = relative_turn(self.direction, new_dir)
-
-        # Execute turn if needed (this will also update self.direction)
-        # if rel != 0:
-        #     print(f"Executing turn: {rel}")
-        #     self.turn(rel)
-        # if self.stopped:
-        #     return current_path_index
-        # else:
-        #     print("No turn needed - going straight")
+        self.turn_abs(maze_map[path[0]][path[1]])
+        self.junction_detected = False
 
         try:
             while current_path_index < len(path) - 1:
@@ -219,7 +239,7 @@ class Robot:
             self.robot_state = self.STATE_COMPLETED
 
             # Update robot's current node to the destination
-            self.node = destination_node
+            self.update_node(destination_node)
             print(f"Robot now at node: {self.node}")
 
         except KeyboardInterrupt:
@@ -246,7 +266,7 @@ class Robot:
         current_node = path[current_path_index]
 
         # Update robot's current node
-        self.node = current_node
+        self.update_node(current_node)
 
         print(f"Junction detected! Now at node: {current_node}")
 
