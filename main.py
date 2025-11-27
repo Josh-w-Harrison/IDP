@@ -10,16 +10,15 @@ from sensors import TCS34725, VL53L0X
 if __name__ == "__main__":
     robot = Robot()
     
-    power_on= Pin(22, Pin.OUT)
-    power_on.value(1)
-    time.sleep(1)
+    colour_sensor_power = Pin(22, Pin.OUT)
+    colour_sensor_power.value(0)
     
     i2c_0 = I2C(0, scl=Pin(17), sda=Pin(16), freq=400000)
     i2c_1 = I2C(1, sda=Pin(18), scl=Pin(19))
     
-    actuator = Actuator(0, 1)
-    actuator.reset()
-    actuator.set_height(25)
+    # actuator = Actuator(0, 1)
+    # actuator.reset()
+    # actuator.set_height(25)
     
     # colour_sensor = TCS34725(i2c_0)
     # distance_sensor = VL53L0X(i2c_1)
@@ -49,23 +48,33 @@ if __name__ == "__main__":
                 
                 robot.line_follow_until_lost()
                 
+                if True:
                 # if distance_sensor.read() < 100:
-                #     box = True
-                #     box_colour = colour_sensor.get_color()
+                    box = True
+                    
+                    colour_sensor_power.value(1)
+                    time.sleep(5)
+                    i2c_0 = I2C(0, scl=Pin(17), sda=Pin(16), freq=400000)
+                    colour_sensor = TCS34725(i2c_0)
+                    box_colour = colour_sensor.get_color()
+                    colour_sensor_power.value(0)
+                    
+                    # actuator.set_height(30)
+                else:
+                    box = False
+                
+                
+                # box = True
+                # box_colour = "BlueJunction"
+                
+                
+                # if box:
                 #     actuator.set_height(30)
-                # else:
-                #     box = False
-                
-                box = True
-                box_colour = "BlueJunction"
-                
-                if box:
-                    actuator.set_height(30)
                 
                 robot.reverse_from_bay()
                 
                 if box:
-                    actuator.reset()
+                    # actuator.reset()
                     robot.turn_abs(2)
                     robot.navigate_path(box_colour)
                     robot.turn_abs(2)

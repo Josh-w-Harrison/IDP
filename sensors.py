@@ -114,6 +114,7 @@ class TCS34725:
     
     def get_color(self):
         clear, red, green, blue = self.read_raw()
+        print(self.read_raw())
         temp = self.calculate_color_temperature(red, green, blue)
         lux = self.calculate_lux(red, green, blue)
 

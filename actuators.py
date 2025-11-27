@@ -66,9 +66,31 @@ class Actuator:
         self.off()
         
 
+class Servo:
+    def __init__(self, pwm_pin_no):
+        self.pwm_pin = PWM(Pin(pwm_pin_no))
+        self.pwm_pin.freq(50)
+
+
+    def set_angle(self, angle):
+        angle = max(0, min(180, angle))
+        
+        min_us = 500
+        max_us = 2500
+        us = min_us + (max_us - min_us) * angle / 180
+
+        duty = int(us / 20000 * 65535)
+        self.pwm_pin.duty_u16(duty)
+        
+
 if __name__ == "__main__":
-    actuator = Actuator(0, 1)
     
+    servo = Servo(15)
+    servo.set_angle(0)
+    sleep(1)
+    servo.set_angle(180)
+    
+    # actuator = Actuator(0, 1)
     # actuator.speed(50)
-    actuator.reset()
-    actuator.set_height(10)
+    # actuator.reset()
+    # actuator.set_height(10)

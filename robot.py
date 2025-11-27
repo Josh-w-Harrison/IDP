@@ -36,8 +36,8 @@ class Robot:
         self.active = False
 
         # Setup flashing yellow light
-        # self.yellow_light = Pin(self.yellow_light_pin, Pin.OUT)
-        # self.yellow_light.value(0)
+        self.yellow_light = Pin(self.yellow_light_pin, Pin.OUT)
+        self.yellow_light.value(1)
 
         # Setup junction detection interrupts
         self.junction_pin1 = Pin(self.junction_left_pin, Pin.IN, Pin.PULL_UP)
@@ -66,10 +66,10 @@ class Robot:
 
         if new_node == "BoxInside":
             self.active = False
-            # self.yellow_light(1)
+            self.yellow_light(1)
         else:
             self.active = True
-            # self.yellow_light(0)
+            self.yellow_light(0)
 
     def line_follow(self, base_speed=80, correction_factor=15):
         """Follow a line using differential steering."""
