@@ -16,12 +16,10 @@ if __name__ == "__main__":
     i2c_0 = I2C(0, scl=Pin(17), sda=Pin(16), freq=400000)
     i2c_1 = I2C(1, sda=Pin(18), scl=Pin(19))
     
-    # actuator = Actuator(0, 1)
-    # actuator.reset()
-    # actuator.set_height(25)
+    actuator = Actuator(0, 1)
+    actuator.set_height(25)
     
-    # colour_sensor = TCS34725(i2c_0)
-    # distance_sensor = VL53L0X(i2c_1)
+    distance_sensor = VL53L0X(i2c_1)
 
     print("Robot initialized. Press button to start/stop navigation.")
 
@@ -41,47 +39,36 @@ if __name__ == "__main__":
                 
                 if "LowerRackA" in node or "UpperRackB" in node:
                     robot.turn_abs(1)
+                    actuator.set_height(28)
                 else:
                     robot.turn_abs(3)
-                # robot.turn_abs(1)
                 
                 
-                robot.line_follow_until_lost()
+                robot.line_follow_for_time(3700)
                 
-                if True:
-                # if distance_sensor.read() < 100:
+                if distance_sensor.read() < 100:
                     box = True
                     
                     colour_sensor_power.value(1)
-                    time.sleep(5)
                     i2c_0 = I2C(0, scl=Pin(17), sda=Pin(16), freq=400000)
                     colour_sensor = TCS34725(i2c_0)
+                    time.sleep(1) # Delay to allow the colour sensor to initialise
                     box_colour = colour_sensor.get_color()
                     colour_sensor_power.value(0)
                     
-                    # actuator.set_height(30)
+                    actuator.set_height(35)
                 else:
                     box = False
-                
-                
-                # box = True
-                # box_colour = "BlueJunction"
-                
-                
-                # if box:
-                #     actuator.set_height(30)
                 
                 robot.reverse_from_bay()
                 
                 if box:
-                    # actuator.reset()
+                    actuator.set_height(20)
                     robot.turn_abs(2)
                     robot.navigate_path(box_colour)
                     robot.turn_abs(2)
-                    robot.line_follow_until_lost()
-                    #
-                    # robot.reverse_from_bay()
-                    # robot.turn_abs(3)
+                    robot.line_follow_for_time(5500)
+                    actuator.set_height(0)
                     robot.uturn()
                     robot.continue_to_junction()
                     robot.navigate_path(node)

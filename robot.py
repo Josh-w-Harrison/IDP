@@ -51,7 +51,9 @@ class Robot:
 
     def _junction_interrupt(self, pin):
         """Interrupt handler for junction detection."""
-        print(f"INTERRUPT: Junction detected on pin {pin}! Value: {pin.value()}")
+        # print(f"INTERRUPT: Junction detected on pin {pin}! Value: {pin.value()}")
+        # self.left_motor.off()
+        # self.right_motor.off()
         self.junction_detected = True
 
     def _button_interrupt(self, pin):
@@ -80,22 +82,11 @@ class Robot:
         self.left_motor.speed(base_speed - diff)
         self.right_motor.speed(base_speed + diff)
 
-    def line_follow_until_lost(self, base_speed=80, correction_factor=15):
+    def line_follow_for_time(self, time, base_speed=40, correction_factor=10):
         """Follow a line using differential steering."""
         start_time = ticks_ms()
-        min_time = 1500
-        while ticks_ms() - start_time < min_time:
-            left_sensor = LineSensor.read(self.line_left_pin)
-            right_sensor = LineSensor.read(self.line_right_pin)
-            diff = (left_sensor - right_sensor) * correction_factor
-
-            # if left_sensor == 0 and right_sensor == 0:
-            #     self.left_motor.off()
-            #     self.right_motor.off()
-            # nm,    break
-
-            self.left_motor.speed(base_speed - diff)
-            self.right_motor.speed(base_speed + diff)
+        while ticks_ms() - start_time < time:
+            self.line_follow(base_speed, correction_factor)
 
     def reverse_from_bay(self, speed=60):
 
@@ -127,7 +118,7 @@ class Robot:
             speed: Motor speed during turn (default 75)
         """
         start_time = ticks_ms()
-        min_turn_time = 750  # 1.5 seconds minimum turn time
+        min_turn_time = 750  # minimum turn time
 
         if rel_dir == 1:  # Turn right
             self.left_motor.speed(speed)
@@ -143,21 +134,13 @@ class Robot:
                 pass
             while LineSensor.read(self.line_right_pin) == 0:
                 pass
-        elif rel_dir == 2:  # U-turn
+        elif rel_dir == 2:  # U-turn (SHOULD NOT BE USED)
             dirs = set(maze_map[self.node].values())
             turn_dirs = {self.direction, self.direction+rel_dir}
             dir = dirs.difference(turn_dirs)
             
             self.turn_abs(dir.pop())
             self.turn_abs(self.direction+rel_dir)
-            
-            # self.left_motor.speed(speed)
-            # self.right_motor.speed(-speed)
-            # while ticks_ms() - start_time < min_turn_time * 1.2:
-            #     pass
-            # while LineSensor.read(self.line_right_pin) == 0:
-            #     pass
-
             
 
         self.left_motor.off()
@@ -232,7 +215,7 @@ class Robot:
                         return
 
                     if self.junction_detected:
-                        sleep(0.1)
+                        # sleep(0.1)
                         current_path_index = self._handle_junction(path, current_path_index)
 
             print("Path navigation completed!")
@@ -262,6 +245,10 @@ class Robot:
     def _handle_junction(self, path, current_path_index):
         """Handle junction detection and execute appropriate turn."""
         # Move to next node
+        
+        self.left_motor.off()
+        self.right_motor.off()
+        
         current_path_index += 1
         current_node = path[current_path_index]
 

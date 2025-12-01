@@ -32,9 +32,10 @@ class Actuator:
         self.pwm = PWM(Pin(pwm_pin))
         self.pwm.freq(1000)
         self.off()
-        self.base_speed = 75
-        self.height = 0
-        
+        self.base_speed = 40
+        self.ground_height = 5
+        self.relative_height = 0
+
         self.reset()
 
     def off(self):
@@ -51,17 +52,23 @@ class Actuator:
             self.pwm.duty_u16(int(65535 * abs(speed) / 100))
             
     def reset(self):
+        print("Resetting actuator height")
         self.speed(-self.base_speed)
-        sleep(5)
+        sleep(15)
+        self.set_height(self.ground_height)
+        self.relative_height = 0
         self.off()
             
-    def set_height(self, height):
-        if height > self.height:
+    def set_height(self, relative_height):
+        print("Setting relative height to", relative_height)
+        if relative_height > self.relative_height:
             self.speed(self.base_speed)
         else:
             self.speed(-self.base_speed)
             
-        sleep(abs(height - self.height) / (0.07 * self.base_speed))
+        sleep(abs(relative_height - self.relative_height) / (0.07 * self.base_speed))
+        
+        self.relative_height = relative_height
         
         self.off()
         
@@ -90,7 +97,7 @@ if __name__ == "__main__":
     sleep(1)
     servo.set_angle(180)
     
-    # actuator = Actuator(0, 1)
-    # actuator.speed(50)
-    # actuator.reset()
-    # actuator.set_height(10)
+    actuator = Actuator(0, 1)
+    actuator.speed(50)
+    actuator.reset()
+    actuator.set_height(10)
