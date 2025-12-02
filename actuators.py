@@ -33,7 +33,7 @@ class Actuator:
         self.pwm.freq(1000)
         self.off()
         self.base_speed = 40
-        self.ground_height = 5
+        self.ground_height = 0
         self.relative_height = 0
 
         self.reset()

@@ -10,6 +10,8 @@ from sensors import TCS34725, VL53L0X
 if __name__ == "__main__":
     robot = Robot()
     
+    button = Pin(12, Pin.IN, Pin.PULL_DOWN)
+    
     colour_sensor_power = Pin(22, Pin.OUT)
     colour_sensor_power.value(0)
     
@@ -17,11 +19,14 @@ if __name__ == "__main__":
     i2c_1 = I2C(1, sda=Pin(18), scl=Pin(19))
     
     actuator = Actuator(0, 1)
-    actuator.set_height(25)
+    actuator.set_height(32)
     
     distance_sensor = VL53L0X(i2c_1)
 
     print("Robot initialized. Press button to start/stop navigation.")
+    
+    while button.value() == 0:
+        pass
 
     while True:
         if not robot.stopped:
@@ -39,18 +44,19 @@ if __name__ == "__main__":
                 
                 if "LowerRackA" in node or "UpperRackB" in node:
                     robot.turn_abs(1)
-                    actuator.set_height(28)
+                    actuator.set_height(32)
                 else:
                     robot.turn_abs(3)
                 
                 
-                robot.line_follow_for_time(3700)
+                robot.line_follow_for_time(3100, 40)
                 
                 if distance_sensor.read() < 100:
                     box = True
                     
                     colour_sensor_power.value(1)
                     i2c_0 = I2C(0, scl=Pin(17), sda=Pin(16), freq=400000)
+                    time.sleep(1)
                     colour_sensor = TCS34725(i2c_0)
                     time.sleep(1) # Delay to allow the colour sensor to initialise
                     box_colour = colour_sensor.get_color()
@@ -63,12 +69,13 @@ if __name__ == "__main__":
                 robot.reverse_from_bay()
                 
                 if box:
-                    actuator.set_height(20)
+                    actuator.set_height(15)
                     robot.turn_abs(2)
                     robot.navigate_path(box_colour)
                     robot.turn_abs(2)
-                    robot.line_follow_for_time(5500)
+                    robot.line_follow_for_time(2000)
                     actuator.set_height(0)
+                    robot.reverse_for_time(500)
                     robot.uturn()
                     robot.continue_to_junction()
                     robot.navigate_path(node)

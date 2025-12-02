@@ -28,7 +28,7 @@ class Robot:
         self.yellow_light_pin = 28
 
         # Navigation state
-        self.stopped = True
+        self.stopped = False
         self.junction_detected = False
         self.robot_state = self.STATE_LINE_FOLLOWING
         self.direction = 0  # Current orientation
@@ -46,8 +46,8 @@ class Robot:
         self.junction_pin2.irq(trigger=Pin.IRQ_RISING, handler=self._junction_interrupt)
 
         # Setup button interrupt
-        self.button = Pin(self.button_pin, Pin.IN, Pin.PULL_DOWN)
-        self.button.irq(trigger=Pin.IRQ_RISING, handler=self._button_interrupt)
+        # self.button = Pin(self.button_pin, Pin.IN, Pin.PULL_DOWN)
+        # self.button.irq(trigger=Pin.IRQ_RISING, handler=self._button_interrupt)
 
     def _junction_interrupt(self, pin):
         """Interrupt handler for junction detection."""
@@ -82,11 +82,21 @@ class Robot:
         self.left_motor.speed(base_speed - diff)
         self.right_motor.speed(base_speed + diff)
 
-    def line_follow_for_time(self, time, base_speed=40, correction_factor=10):
+    def line_follow_for_time(self, time, base_speed=80, correction_factor=15):
         """Follow a line using differential steering."""
         start_time = ticks_ms()
         while ticks_ms() - start_time < time:
             self.line_follow(base_speed, correction_factor)
+        self.right_motor.off()
+        self.left_motor.off()
+            
+    def reverse_for_time(self, time, speed=40):
+        start_time = ticks_ms()
+        while ticks_ms() - start_time < time:
+            self.left_motor.speed(-speed)
+            self.right_motor.speed(-speed)
+        self.right_motor.off()
+        self.left_motor.off()
 
     def reverse_from_bay(self, speed=60):
 
@@ -108,7 +118,7 @@ class Robot:
         self.right_motor.off()
 
 
-    def turn(self, rel_dir, speed=75):
+    def turn(self, rel_dir, speed=50):
         """
         Execute a turn based on relative direction.
         Updates the robot's direction state after turning.
