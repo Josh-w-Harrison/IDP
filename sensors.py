@@ -110,7 +110,7 @@ class TCS34725:
             return "GreenJunction"
         if (gn > rn) and bn < 0.35 and (gn + rn) > 0.60:
             return "YellowJunction"
-        return "BlueJunction"
+        return "GreenJunction"
     
     def get_color(self):
         clear, red, green, blue = self.read_raw()

@@ -19,7 +19,7 @@ if __name__ == "__main__":
     i2c_1 = I2C(1, sda=Pin(18), scl=Pin(19))
     
     actuator = Actuator(0, 1)
-    actuator.set_height(32)
+    actuator.set_height(30)
     
     distance_sensor = VL53L0X(i2c_1)
 
@@ -33,7 +33,7 @@ if __name__ == "__main__":
             
             rack_nodes = [
                 "LowerRackA6", "LowerRackA5", "LowerRackA4", "LowerRackA3", "LowerRackA2", "LowerRackA1",
-                "LowerRackB1", "LowerRackB2", "LowerRackB3", "LowerRackB4", "LowerRackB5", "LowerRackB6",
+                "LowerRackB1", "LowerRackB2", "LowerRackB3", "LowerRackB4", "LowerRackB5", "LowerRampB6",
                 "UpperRackA1", "UpperRackA2", "UpperRackA3", "UpperRackA4", "UpperRackA5", "UpperRackA6",
                 "UpperRackB6", "UpperRackB5", "UpperRackB4", "UpperRackB3", "UpperRackB2", "UpperRackB1"
                 ]
@@ -44,12 +44,16 @@ if __name__ == "__main__":
                 
                 if "LowerRackA" in node or "UpperRackB" in node:
                     robot.turn_abs(1)
-                    actuator.set_height(32)
                 else:
                     robot.turn_abs(3)
                 
+                if "Lower" in node:
+                    actuator.set_height(30)
+                else:
+                    actuator.set_height(0)
                 
-                robot.line_follow_for_time(3100, 40)
+                robot.line_follow_for_time(1575, 60)
+                #robot.line_follow_for_time(3000,40)  # For testing purposes
                 
                 if distance_sensor.read() < 100:
                     box = True
@@ -70,16 +74,22 @@ if __name__ == "__main__":
                 
                 if box:
                     actuator.set_height(15)
-                    robot.turn_abs(2)
+                    robot.turn_abs(2, 50, 0.835)
+                    robot.line_follow_for_time(200)
                     robot.navigate_path(box_colour)
                     robot.turn_abs(2)
                     robot.line_follow_for_time(2000)
                     actuator.set_height(0)
-                    robot.reverse_for_time(500)
+                    robot.reverse_for_time(1500)
                     robot.uturn()
                     robot.continue_to_junction()
                     robot.navigate_path(node)
+                elif node == "UpperRackA6" or node == "UpperRackB1":
+                    robot.turn_abs(2,50, 0.835)
+                    robot.line_follow_for_time(200)
                 else:
-                    robot.turn_abs(0)
+                    robot.turn_abs(0, 50, 0.835)
+                    robot.line_follow_for_time(200)
             
+            robot.navigate_path("BoxInside")
             robot.stopped = True  # Prevent immediate restart after completion

@@ -32,7 +32,7 @@ class Actuator:
         self.pwm = PWM(Pin(pwm_pin))
         self.pwm.freq(1000)
         self.off()
-        self.base_speed = 40
+        self.base_speed = 33
         self.ground_height = 0
         self.relative_height = 0
 

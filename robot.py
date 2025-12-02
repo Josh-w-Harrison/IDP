@@ -118,7 +118,7 @@ class Robot:
         self.right_motor.off()
 
 
-    def turn(self, rel_dir, speed=50):
+    def turn(self, rel_dir, speed=75, correction_factor=0.67):
         """
         Execute a turn based on relative direction.
         Updates the robot's direction state after turning.
@@ -126,12 +126,13 @@ class Robot:
         Args:
             rel_dir: Relative turn direction (+1=right, -1=left, 2=U-turn, 0=straight)
             speed: Motor speed during turn (default 75)
+            correction_factor: Speed correction factor for outer wheel (default 0.85)
         """
         start_time = ticks_ms()
-        min_turn_time = 750  # minimum turn time
+        min_turn_time = 750  # minimum turn time 
 
         if rel_dir == 1:  # Turn right
-            self.left_motor.speed(speed)
+            self.left_motor.speed(speed*correction_factor)
             self.right_motor.speed(-speed)
             while ticks_ms() - start_time < min_turn_time:
                 pass
@@ -139,7 +140,7 @@ class Robot:
                 pass
         elif rel_dir == -1:  # Turn left
             self.left_motor.speed(-speed)
-            self.right_motor.speed(speed)
+            self.right_motor.speed(speed*correction_factor)
             while ticks_ms() - start_time < min_turn_time:
                 pass
             while LineSensor.read(self.line_right_pin) == 0:
@@ -159,9 +160,9 @@ class Robot:
         # Update direction state based on relative turn
         self.direction = (self.direction + rel_dir) % 4
         
-    def turn_abs(self, abs_dir, speed=75):
+    def turn_abs(self, abs_dir, speed=75, correction_factor=1):
         rel_dir = relative_turn(self.direction, abs_dir)
-        self.turn(rel_dir)
+        self.turn(rel_dir, speed, correction_factor)
         
     def uturn(self, speed=75):
         
